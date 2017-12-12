@@ -559,6 +559,37 @@ char** get_block_device_symlinks(struct uevent* uevent) {
 
     snprintf(link_path, sizeof(link_path), "/dev/block/%s/%s", type, device);
 
+    if(!strcmp(type, "mtd")) {
+        snprintf(mtd_name_path, sizeof(mtd_name_path),
+            "/sys/devices/virtual/%s/%s/name", type, device);
+        mtd_fd = open(mtd_name_path, O_RDONLY);
+            if(mtd_fd < 0) {
+                return NULL;
+            }
+        nr = read(mtd_fd, mtd_name, sizeof(mtd_name) - 1);
+        if (nr <= 0)
+            return NULL;
+        close(mtd_fd);
+        mtd_name[nr - 1] = '\0';
+
+        p = strdup(mtd_name);
+        sanitize(p);
+        if (asprintf(&links[link_num], "/dev/block/%s/by-name/%s", type, p) > 0)
+            link_num++;
+        else
+            links[link_num] = NULL;
+        free(p);
+    }
+
+    std::string boot_device;
+    void make_link_init(const char *oldpath, const char *newpath);
+    if (pdev && boot_device.c_str()[0] != '\0' && strstr(device, boot_device.c_str())) {
+        make_link_init(link_path, "/dev/block/bootdevice");
+        is_bootdevice = 1;
+    } else {
+        is_bootdevice = 0;
+    }
+
     if (uevent->partition_name) {
         p = strdup(uevent->partition_name);
         sanitize(p);
@@ -588,7 +619,7 @@ char** get_block_device_symlinks(struct uevent* uevent) {
     return links;
 }
 
-static void make_link_init(const char* oldpath, const char* newpath) {
+  void make_link_init(const char *oldpath, const char *newpath) {
   const char* slash = strrchr(newpath, '/');
   if (!slash) return;
 
