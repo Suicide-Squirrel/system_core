@@ -343,9 +343,7 @@ bool BatteryMonitor::update(void) {
                                 if (mHealthdConfig->dockBatterySupported) {
                                     props.chargerDockAcOnline = true;
                                 }
-                            default:
-                                KLOG_WARNING(LOG_TAG, "%s: Unknown power supply type\n",
-                                             name);
+                            default: ANDROID_POWER_SUPPLY_TYPE_USB;
                             }
 
                             //If its online, read the voltage and current for power
